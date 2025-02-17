@@ -1,5 +1,4 @@
 flask
 rembg
 pillow
-onnxruntime==1.16.3  # Versão compatível
-
+onnxruntime==1.15.0
