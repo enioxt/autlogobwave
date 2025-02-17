@@ -1,4 +1,4 @@
-logos_processadas/
-.env
-__pycache__/
+node_modules/
+tokens/
 *.log
+.env
