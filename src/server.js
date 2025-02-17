@@ -1,24 +1,42 @@
 const express = require('express');
 const { create } = require('@wppconnect-team/wppconnect');
 const cors = require('cors');
-const path = require('path');
-const { PythonShell } = require('python-shell');
 const sharp = require('sharp');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Configurações essenciais
+// Variável global para armazenar o QR Code
+let qrCode = '';
+
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Rota raiz para verificação do servidor
+// Rota principal com HTML básico
 app.get('/', (req, res) => {
-  res.send('🤖 Serviço de Redimensionamento de Logos via WhatsApp');
+  res.send(`
+    <html>
+      <head>
+        <title>WhatsApp Bot</title>
+      </head>
+      <body>
+        <h1>Status do Bot WhatsApp</h1>
+        ${qrCode ? `<img src="${qrCode}" alt="QR Code"/>` : '<p>Aguardando QR Code...</p>'}
+        <p>Status: ${qrCode ? 'Aguardando conexão' : 'Iniciando...'}</p>
+      </body>
+    </html>
+  `);
 });
 
-// Função principal de automação
+// Rota para obter o QR Code atual
+app.get('/qrcode', (req, res) => {
+  if (qrCode) {
+    res.json({ qrcode: qrCode });
+  } else {
+    res.status(404).json({ message: 'QR Code não disponível' });
+  }
+});
+
 async function startAutomation() {
   try {
     const client = await create({
@@ -32,48 +50,21 @@ async function startAutomation() {
         ]
       },
       catchQR: (base64Qr) => {
-        console.log('⚠️ Escaneie o QR Code no WhatsApp Web!');
+        qrCode = base64Qr; // Armazena o QR Code
+        console.log('QR Code atualizado!');
       },
       statusFind: (statusSession) => {
-        console.log(`📱 Status da Conexão: ${statusSession}`);
+        console.log(`Status: ${statusSession}`);
       }
     });
 
-    // Evento para mensagens de mídia
-    client.onMessage(async (message) => {
-      try {
-        if (message.isMedia || message.isImage) {
-          // Download da imagem original
-          const mediaData = await client.downloadMedia(message);
-          
-          // Processamento da imagem
-          const resizedImage = await sharp(Buffer.from(mediaData.data, 'base64'))
-            .resize(800, 800, { fit: 'inside' })
-            .toBuffer();
-
-          // Envio da imagem redimensionada
-          await client.sendImage(
-            message.from,
-            `data:${mediaData.mimetype};base64,${resizedImage.toString('base64')}`,
-            'logo-redimensionada.png',
-            '✅ Logo redimensionada com sucesso!'
-          );
-        }
-      } catch (error) {
-        console.error('❌ Erro no processamento:', error);
-        await client.sendText(message.from, '😟 Não consegui processar a imagem. Tente novamente!');
-      }
-    });
-
-    console.log('🚀 Automação pronta para receber mensagens!');
+    // Resto do seu código...
   } catch (error) {
-    console.error('‼️ Falha crítica:', error);
-    process.exit(1);
+    console.error('Erro:', error);
   }
 }
 
-// Inicialização do servidor
 app.listen(PORT, () => {
-  console.log(`🔥 Servidor rodando em: http://localhost:${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
   startAutomation();
 });
