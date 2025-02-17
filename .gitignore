@@ -1,0 +1,4 @@
+logos_processadas/
+.env
+__pycache__/
+*.log
